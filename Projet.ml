@@ -19,7 +19,7 @@ ENTRY (OUVRANTE "contacts",[
 ENTRY (OUVRANTE "prenom",[DATA "Jimmy"]);
 ENTRY (FERMANTE "prenom",[DATA ""]);
 ENTRY (OUVRANTE "ville",[DATA "olivet"]);
-ENTRY (FERMANTE "olivet",[DATA ""])] );
+ENTRY (FERMANTE "ville",[DATA ""])] );
 ENTRY (FERMANTE "contacts",[DATA ""])];;
 (* Structure de la DTD *)
 
