@@ -10,9 +10,11 @@ and entry= DATA of string
 	   |ENTRY of balises*(entry list);;
 (*
 <contacts>
- <prenom> Jimmy </prenom>
-<ville> olivet </ville>
- </contact>
+	<contact>
+ 		<prenom> Jimmy </prenom>
+		<ville> olivet </ville>
+	<contact>
+ </contacts>
 *)
 let essai= DOCUMENTXML [
 ENTRY (OUVRANTE "contacts",[
@@ -21,6 +23,8 @@ ENTRY (FERMANTE "prenom",[DATA ""]);
 ENTRY (OUVRANTE "ville",[DATA "olivet"]);
 ENTRY (FERMANTE "ville",[DATA ""])] );
 ENTRY (FERMANTE "contacts",[DATA ""])];;
+
+
 (* Structure de la DTD *)
 
 type elements= ELEMENTS of occurence*atom
@@ -32,19 +36,24 @@ and occurence= ATOM1
 	       | ATOM_01
 and atom= IDENTIFIANT of id 
 	  |ELEMENT of elements;;
+
 type documentDTD = DOCUMENTDTD of (description list)
 and description= id * model
 and model= EMPTY | PCDATA of string | MODEL of elements;;
  
- (* Quelques Exceptions *)
- exception Fail of string;;
- let error_xml= Fail "Not a XML file";;
- let error_dtd= Fail "Not a DTD file";;
- (* Quelques Exceptions *)
- exception Fail of string;;
- let error_xml= Fail "Not a XML file";;
- let error_dtd= Fail "Not a DTD file";;
+let dtd_expl = DOCUMENTDTD [
+("contacts", MODEL (ELEMENTS (ATOM_MULT, IDENTIFIANT "contact"))); 
+("contact", MODEL (ALL [(ATOM1, IDENTIFIANT "prenom"); (ATOM1, IDENTIFIANT "ville")]));
+("prenom", PCDATA "Jimmy");
+("ville", PCDATA "Olivet") ];;
 
+
+
+ (* Quelques Exceptions *)
+ exception Fail of string;;
+ let error_xml= Fail "Not a XML file";;
+ let error_dtd= Fail "Not a DTD file";; (*Inutile nan? Vu qu'on suppose la DTD correcte*)
+ 
 (* Verification de la structure du fichier xml  *)
 (* Explications plus détaillé de la méthode à venir  *)
  let depiler l= (List.tl l);; (* Depiler une pile en retirant la tete *)
