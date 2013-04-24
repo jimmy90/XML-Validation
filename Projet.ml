@@ -18,10 +18,12 @@ and entry= DATA of string
 *)
 let essai= DOCUMENTXML [
 ENTRY (OUVRANTE "contacts",[
+ENTRY (OUVRANTE "contact",[
 ENTRY (OUVRANTE "prenom",[DATA "Jimmy"]);
 ENTRY (FERMANTE "prenom",[DATA ""]);
 ENTRY (OUVRANTE "ville",[DATA "olivet"]);
 ENTRY (FERMANTE "ville",[DATA ""])] );
+ENTRY (FERMANTE "contact", [DATA ""])]);
 ENTRY (FERMANTE "contacts",[DATA ""])];;
 
 
