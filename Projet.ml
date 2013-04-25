@@ -1,3 +1,4 @@
+
 #load "str.cma";;
 
 (* Structure document XML *)
@@ -78,5 +79,73 @@ le fichier xml faux alors supprimer cette ligne svp dans le cas contraire laisse
        |n::"</"::t ->  if ((ops=[])&&(stack<>[])) then (aux stack ops ("</"::t)) else raise error_xml 
        |_-> raise error_xml
    in aux [] [] liste;;
- rules_xml  ["<";"contacts";">";"<";"contact";">";"eee";"<";"prenom";">";"Jimmy";"</";"prenom";">"
+ let exemple=  ["<";"contacts";">";"<";"contact";">";"eee";"<";"prenom";">";"Jimmy";"</";"prenom";">"
 ;"<";"ville";">";"Olivet";"</";"ville";">";"</";"contact";">";"</";"contacts";">"];;
+rules_xml exemple;;
+ let rec nom_balises l=
+   match l with 
+       []->[]
+     |"<"::a -> (List.hd a)::(nom_balises (List.tl a))
+     |"</"::a -> (List.hd a)::(nom_balises (List.tl a))
+     |a::b -> (nom_balises b);;
+
+nom_balises exemple;;
+
+(* Methode permettant de retirer la 1ere occurence de s dans une liste l *)
+
+ let rec remove s l=
+   match l with
+       []->[]
+     |a::b when a=s -> b
+     |a::b -> a::(remove s b);;
+
+(* Méthode permettant de retourner  la tete si celle-ci n'est pas identique à l'element suivant,  si la tete et le suivant sont 
+identiques on renvoie une liste contenant la tete et on continue avec le meme principe pour la suite
+ - Exemple: si on a une liste l= ["m";"b";"v";"v";"r";"d"] la fonction renverra ["m"] et si on a une liste l2=["m";"m";"s";"s";"t";"p";"j";"t"] elle renverra
+ ["m","s","t"] *)
+
+ let rec sous_liste r =
+   match r  with
+     |[]-> []
+     |a::b -> begin 
+       match b with
+	   []->[]
+	 |c::d -> if (c=a) then (a::(sous_liste d)) else [a]
+     end;;
+(* l'argument m est le nom de la balise *)
+ let sous_liste_final l m=
+   let rec aux liste  m=
+     match liste with 
+	 []->[]
+       |t::q -> if (t=m) then [] else t::(aux q m) in aux (sous_liste l) m;; 
+
+(* Méthode permettant de determiner le nombre d'apparition d'une balise dans un doccument xml *)
+
+ let nb_apparition a l=
+   let rec aux a l res=
+     match l with 
+	 []-> (res/2)
+       |t::q -> if (t=a) then (aux a q (res+1)) else (aux a q res) in aux a l 0;;
+
+(* Méthode permettant de resumer un document xml à peu pres à l'image d'une DTD et donne le nombre d'apparition de chaque balise*)
+
+ let resume_xml l=
+   let rec aux liste=
+   match liste with
+       []->[]
+     |a::b::[]->[(a,(["PCDATA"],(nb_apparition a l)))]
+     |a::b -> if (List.hd b)=a then (a,(["PCDATA"],(nb_apparition a l)))::(aux (List.tl b)) else (a,((sous_liste_final b a),(nb_apparition a l)))::(aux (remove a b)) in aux (nom_balises l);;
+
+(* Supprime les doublons c'est à dire chaque couple obtenu par par la fonction précedente qui se retrouve au minimum 2 est suprimé de telle sorte qu'il 
+reste qu'une seule occurence *)
+
+ let resume_xml_final l=
+   let rec aux liste=
+   match liste with 
+       []->[]
+     |a::b -> a::(aux (remove a b)) in aux (resume_xml l);;
+
+(* Exemple de ce que fait la fonction *)
+(* L' argument de la fonction ci dessous (<<exemple>>) est une variable globale définit plus haut *)
+
+resume_xml_final ["<";"contacts";">";"<";"contact";">";"<";"prenom";">";"Jimmy";"</";"prenom";">";"<";"ville";">";"Olivet";"</";"ville";">";"</";"contact";">";"<";"contact";">";"<";"prenom";">";"Tennessy";"</";"prenom";">";"<";"ville";">";"Courtenay";"</";"ville";">";"</";"contact";">";"</";"contacts";">"] ;;
