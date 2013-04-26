@@ -30,7 +30,7 @@ ENTRY (FERMANTE "contacts",[DATA ""])];;
 
 (* Structure de la DTD *)
 
-type elements= ELEMENTS of occurence*atom
+type elements= ELEMENTS of (occurence*atom) list
 	      |ALL of (occurence * atom) list
 	      |ONE_OF_ALL of (occurence * atom) list 
 and occurence= ATOM1 
@@ -42,13 +42,13 @@ and atom= IDENTIFIANT of id
 
 type documentDTD = DOCUMENTDTD of (description list)
 and description= id * model
-and model= EMPTY | PCDATA of string | MODEL of elements;;
+and model= EMPTY | PCDATA | MODEL of elements;;
  
 let dtd_expl = DOCUMENTDTD [
-("contacts", MODEL (ELEMENTS (ATOM_MULT, IDENTIFIANT "contact"))); 
+("contacts", MODEL (ELEMENTS [(ATOM_MULT, IDENTIFIANT "contact")])); 
 ("contact", MODEL (ALL [(ATOM1, IDENTIFIANT "prenom"); (ATOM1, IDENTIFIANT "ville")]));
-("prenom", PCDATA "Jimmy");
-("ville", PCDATA "Olivet") ];;
+("prenom", PCDATA);
+("ville", PCDATA) ];;
 
 
 
