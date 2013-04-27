@@ -175,12 +175,12 @@ let rec getListElement l = match l with
 let getListComplete l ( id)= 
   match l with 
     [] -> raise error_dtd
+    | (Str.Text hd)::tl when hd="#PCDATA" -> (id, PCDATA)
     |hd::[] -> ( id, MODEL (ELEMENTS (getListElement l))) 
     |hd::tl -> let lDelim = (List.hd (List.tl l)) in match l with
-     (Str.Text hd)::tl when lDelim=(Str.Delim ",") -> ( id, MODEL (ALL (getListElement l)))
-    | (Str.Text hd)::tl when lDelim=(Str.Delim "|") -> (id, MODEL (ONE_OF_ALL (getListElement l)))
-    | (Str.Text hd)::tl when hd="#PCDATA" -> (id, PCDATA)
-    |  _ -> (id, MODEL (ELEMENTS (getListElement l))) ;;
+        (Str.Text hd)::tl when lDelim=(Str.Delim ",") -> ( id, MODEL (ALL (getListElement l)))
+        | (Str.Text hd)::tl when lDelim=(Str.Delim "|") -> (id, MODEL (ONE_OF_ALL (getListElement l)))
+        |  _ -> (id, MODEL (ELEMENTS (getListElement l))) ;;
 
 let getLineDtd s = 
 let base = Str.split(Str.regexp "[< >]") s in 
