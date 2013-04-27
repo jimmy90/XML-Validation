@@ -3,7 +3,7 @@
 
 (* Structure document XML *)
 
-type id= string ;;
+type id= (*ID of*) string ;;
 type balises= OUVRANTE of id
 	      |FERMANTE of id;;
 type documentXML= DOCUMENTXML of (entry list)
@@ -149,3 +149,61 @@ reste qu'une seule occurence *)
 (* L' argument de la fonction ci dessous (<<exemple>>) est une variable globale définit plus haut *)
 
 resume_xml_final ["<";"contacts";">";"<";"contact";">";"<";"prenom";">";"Jimmy";"</";"prenom";">";"<";"ville";">";"Olivet";"</";"ville";">";"</";"contact";">";"<";"contact";">";"<";"prenom";">";"Tennessy";"</";"prenom";">";"<";"ville";">";"Courtenay";"</";"ville";">";"</";"contact";">";"</";"contacts";">"] ;;
+
+
+(*
+(*Creation de la DTD à partir d'un fichier *)
+
+let rec getLastElement l = match l with
+  [] -> ""
+  | hd::[] -> hd
+  | hd::tl -> getLastElement tl;;
+
+(*Renvois un couple (ATOM, id) à partir de, par exemple, telephone?*)
+let getCoupleDtd s = match (Str.last_chars s 1) with
+  "?" -> (ATOM_01, IDENTIFIANT(ID (Str.string_before s ((String.length s)-1))))
+  | "*" -> (ATOM_MULT, IDENTIFIANT(ID  (Str.string_before s ((String.length s)-1))))
+  | "+" -> (ATOM_ADD, IDENTIFIANT(ID  (Str.string_before s ((String.length s)-1))))
+  | _ -> (ATOM1, IDENTIFIANT(ID  (Str.string_before s ((String.length s)))));;
+
+(*Renvois une liste des couples ( par exemple, à partir de (prenom,nom,telephone?)) *)
+let rec getListElement l = match l with
+  [] -> []
+  | (Str.Delim hd)::tl -> getListElement tl
+  | (Str.Text hd)::tl -> (getCoupleDtd hd)::(getListElement tl);;
+
+let getListComplete l ( id)= 
+  match l with 
+    [] -> raise error_dtd
+    |hd::[] -> (ID id, MODEL (ELEMENTS (getListElement l))) 
+    |hd::tl -> let lDelim = (List.hd (List.tl l)) in match l with
+     (Str.Text hd)::tl when lDelim=(Str.Delim ",") -> (ID id, MODEL (ALL (getListElement l)))
+    | (Str.Text hd)::tl when lDelim=(Str.Delim "|") -> (ID id, MODEL (ONE_OF_ALL (getListElement l)))
+    | (Str.Text hd)::tl when hd="#PCDATA" -> (ID id, PCDATA)
+    |  _ -> (ID id, MODEL (ELEMENTS (getListElement l))) ;;
+
+let getLineDtd s = 
+let base = Str.split(Str.regexp "[< >]") s in 
+let  id =  (List.hd (List.tl base)) in 
+let d1 = Str.split(Str.regexp "[()]") (getLastElement base) in 
+let d2 = ( (Str.full_split(Str.regexp "[,|]") (List.hd  d1))) in (getListComplete d2 (id));; 
+
+let read_file filename = 
+  let lines = ref [] in
+    let chan = open_in filename in
+    try
+      while true; do
+        lines := input_line chan :: !lines
+      done; []
+    with End_of_file ->
+      close_in chan;
+      List.rev !lines ;;
+
+
+
+let rec generateDtd l = match l with 
+      [] ->  []
+      | hd::tl -> (getLineDtd hd)::(generateDtd tl);;
+
+let getFullDtd f = DOCUMENTDTD (generateDtd (read_file f));;
+*)
