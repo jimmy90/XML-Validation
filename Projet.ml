@@ -220,10 +220,15 @@ let rec generateDtd l = match l with
 
 let getFullDtd f = DOCUMENTDTD (generateDtd (read_file f));;
 
-let rec getXmlStructure l = match l with
-  [] -> []
-  | hd::tl -> (string_of_result(Str.full_split(Str.regexp "[<>]") hd))::(getXmlStructure tl);;
+let rec getXmlString l = match l with
+  [] -> ""
+  | hd::tl -> (hd^(getXmlString tl));;
 
-let getListXml xml = getXmlStructure (read_file xml);;
+let rec rassembleSlash l = match l with
+  [] -> []
+  | hd::tl when (hd = "<") -> if ((Str.first_chars (List.hd tl) 1) = "/") then (hd^"/")::(rassembleSlash tl) else hd::(rassembleSlash tl)
+  | hd::tl -> if ((Str.first_chars hd 1) = "/") then "a"::(rassembleSlash lt) else "a"::(rassembleSlash (tl));;
+
+let getListXml xml = rassembleSlash( string_of_result(Str.full_split(Str.regexp "[<>]") (getXmlString(read_file xml))));;
 
 let xml = getListXml "testXml.txt";;
