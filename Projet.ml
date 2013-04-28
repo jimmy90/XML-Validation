@@ -1,6 +1,13 @@
 
 #load "str.cma";;
 
+type split_result= Delim of string | Text of string;;
+let rec string_of_result l=
+match l with 
+[]->[]
+  |(Str.Delim a)::b -> a::(string_of_result b)
+  |(Str.Text a)::b -> a::(string_of_result b) ;;
+
 (* Structure document XML *)
 
 type ide = string ;;
@@ -206,3 +213,17 @@ let rec generateDtd l = match l with
       | hd::tl -> (getLineDtd hd)::(generateDtd tl);;
 
 let getFullDtd f = DOCUMENTDTD (generateDtd (read_file f));;
+
+let rec generateDtd l = match l with 
+      [] ->  []
+      | hd::tl -> (getLineDtd hd)::(generateDtd tl);;
+
+let getFullDtd f = DOCUMENTDTD (generateDtd (read_file f));;
+
+let rec getXmlStructure l = match l with
+  [] -> []
+  | hd::tl -> (string_of_result(Str.full_split(Str.regexp "[<>]") hd))::(getXmlStructure tl);;
+
+let getListXml xml = getXmlStructure (read_file xml);;
+
+let xml = getListXml "testXml.txt";;
