@@ -223,12 +223,53 @@ let getFullDtd f = DOCUMENTDTD (generateDtd (read_file f));;
 let rec getXmlString l = match l with
   [] -> ""
   | hd::tl -> (hd^(getXmlString tl));;
+(* String privé de son 1er caractère *)
+let without_the_first s=(String.sub s 1 ((String.length s)-1));;
 
+(* Rassemble les chevrons et le slash *)
 let rec rassembleSlash l = match l with
   [] -> []
-  | hd::tl when (hd = "<") -> if ((Str.first_chars (List.hd tl) 1) = "/") then (hd^"/")::(rassembleSlash tl) else hd::(rassembleSlash tl)
-  | hd::tl -> if ((Str.first_chars hd 1) = "/") then "a"::(rassembleSlash lt) else "a"::(rassembleSlash (tl));;
+  | hd::tl when (hd = "<") -> 
+    begin
+      match tl with 
+	  [] -> [hd]
+	|t::q when (String.sub t 0 1)="/" -> "</"::(rassembleSlash ((without_the_first t)::q))
+	|t::q -> hd::(rassembleSlash (t::q))
+    end 
+  | hd::tl -> if ((String.sub hd 0 1)="/") then "/"::(without_the_first hd)::(rassembleSlash tl) else hd::(rassembleSlash (tl));;
 
-let getListXml xml = rassembleSlash( string_of_result(Str.full_split(Str.regexp "[<>]") (getXmlString(read_file xml))));;
+let getListXml xml =rassembleSlash ( string_of_result(Str.full_split(Str.regexp "[<>]") (getXmlString(read_file xml))));;
+let rec remove_word liste=
+match liste with
+[]-> []
+  |"<"::b -> "<"::(remove_word b)
+  |">"::b -> ">"::(remove_word b)
+  |a::b when (String.sub a 0 9)="!ELEMENT " ->  (String.sub a 9 ((String.length a)-9))::(remove_word b)
+  |a::b -> a::(remove_word b);;
+let separe_parentheses dtd  =( string_of_result(Str.full_split(Str.regexp "[(<>)]") (getXmlString(dtd))));;
+let rec remove_virgule liste  = match liste with
+[]->[]
+  |","::tl -> separe_remove_virgule tl 
+  |hd::tl -> hd::(separe_remove_virgule tl);;
+let separe_virgule l= ( string_of_result(Str.full_split(Str.regexp ",") (getXmlString([l]))));;
+let getSepare_element d= List.map (fun (x,y)-> (x, remove_virgule(separe_virgule y))) d;;
+let rec apparition_dtd
+let rec couplage liste= 
+match liste with
+[]->[]
+  |"<"::b -> begin 
+    match b with
+	[]->[]
+      |">"::q -> couplage q
+      |hd::tl -> begin 
+	match tl with
+	    []->[]
+	  |"("::e::")"::f ->(hd,e)::(couplage f) 
+	  |e::f -> failwith "erreur"
+      end 
+  end
+  |">"::b ->couplage b;;
 
-let xml = getListXml "testXml.txt";;
+let getListDTD dtd =getSepare_element (couplage (separe_parentheses (remove_word ( string_of_result(Str.full_split(Str.regexp "[<>]") (getXmlString(read_file dtd)))))));;
+
+getListDTD "dtdTest.txt";;
