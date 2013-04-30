@@ -1,5 +1,9 @@
 
 #load "str.cma";;
+                (*  LECTURE FICHIER & EXCEPTION  *)
+
+ exception Fail of string;;
+ let error_xml= Fail "Not a XML file";;
 
 type split_result= Delim of string | Text of string;;
 let rec string_of_result l=
@@ -7,63 +11,59 @@ match l with
 []->[]
   |(Str.Delim a)::b -> a::(string_of_result b)
   |(Str.Text a)::b -> a::(string_of_result b) ;;
+let read_file filename = 
+  let lines = ref [] in
+    let chan = open_in filename in
+    try
+      while true; do
+        lines := input_line chan :: !lines
+      done; []
+    with End_of_file ->
+      close_in chan;
+      List.rev !lines ;;
+
 
 (* Structure document XML *)
 
-type ide = string ;;
-type balises= OUVRANTE of ide
-	      |FERMANTE of ide;;
 type documentXML= DOCUMENTXML of (entry list)
-and entry= DATA of string
-	   |ENTRY of balises*(entry list);;
+and entry=Vide  |DATA of string
+	   |ENTRY of string*(entry list);;
 (*
 <contacts>
 	<contact>
  		<prenom> Jimmy </prenom>
 		<ville> olivet </ville>
+                 <tel> 0600000 </tel>
 	<contact>
+        <contact>
+                <prenom> Ten </prenom>
+		<ville> Courtenay </ville>
+        </contact>
  </contacts>
 *)
-let essai= DOCUMENTXML [
-ENTRY (OUVRANTE "contacts",[
-ENTRY (OUVRANTE "contact",[
-ENTRY (OUVRANTE "prenom",[DATA "Jimmy"]);
-ENTRY (FERMANTE "prenom",[DATA ""]);
-ENTRY (OUVRANTE "ville",[DATA "olivet"]);
-ENTRY (FERMANTE "ville",[DATA ""])] );
-ENTRY (FERMANTE "contact", [DATA ""])]);
-ENTRY (FERMANTE "contacts",[DATA ""])];;
+let essai= DOCUMENTXML[ENTRY ( "contacts",[ENTRY ("contact",[ENTRY ("prenom",[DATA "Jimmy"]);ENTRY ("ville",[DATA "Olivet"]);ENTRY ("tel",[DATA "06000000"])]);
+ENTRY ("contact",[ENTRY ("prenom",[DATA "Ten"]);ENTRY ("ville",[DATA "Courtenay"])])])];;
+                                     (* VERIFICATION DE LA SYNTAXE *) 
+let rec getXmlString l = match l with
+  [] -> ""
+  | hd::tl -> (hd^(getXmlString tl));;
+(* String privé de son 1er caractère *)
+let without_the_first s=(String.sub s 1 ((String.length s)-1));;
 
+(* Rassemble les chevrons et le slash *)
+let rec rassembleSlash l = match l with
+  [] -> []
+  | hd::tl when (hd = "<") -> 
+    begin
+      match tl with 
+	  [] -> [hd]
+	|t::q when (String.sub t 0 1)="/" -> "</"::(rassembleSlash ((without_the_first t)::q))
+	|t::q -> hd::(rassembleSlash (t::q))
+    end 
+  | hd::tl -> if ((String.sub hd 0 1)="/") then "/"::(without_the_first hd)::(rassembleSlash tl) else hd::(rassembleSlash (tl));;
 
-(* Structure de la DTD *)
+let getListXml xml =rassembleSlash ( string_of_result(Str.full_split(Str.regexp "[<>]") (getXmlString(read_file xml))));;
 
-type elements= ELEMENTS of (occurence*atom) list
-	      |ALL of (occurence * atom) list
-	      |ONE_OF_ALL of (occurence * atom) list 
-and occurence= ATOM1 
-	       | ATOM_ADD 
-	       | ATOM_MULT 
-	       | ATOM_01
-and atom= IDENTIFIANT of ide 
-	  |ELEMENT of elements;;
-
-type documentDTD = DOCUMENTDTD of (description list)
-and description= ide * model
-and model= EMPTY | PCDATA | MODEL of elements;;
- 
-let dtd_expl = DOCUMENTDTD [
-("contacts", MODEL (ELEMENTS [(ATOM_MULT, IDENTIFIANT "contact")])); 
-("contact", MODEL (ALL [(ATOM1, IDENTIFIANT "prenom"); (ATOM1, IDENTIFIANT "ville")]));
-("prenom", PCDATA);
-("ville", PCDATA) ];;
-
-
-
- (* Quelques Exceptions *)
- exception Fail of string;;
- let error_xml= Fail "Not a XML file";;
- let error_dtd= Fail "Not a DTD file";; (*Inutile nan? Vu qu'on suppose la DTD correcte*)
- 
 (* Verification de la structure du fichier xml  *)
 (* Explications plus détaillé de la méthode à venir  *)
  let depiler l= (List.tl l);; (* Depiler une pile en retirant la tete *)
@@ -86,80 +86,43 @@ le fichier xml faux alors supprimer cette ligne svp dans le cas contraire laisse
        |n::"</"::t ->  if ((ops=[])&&(stack<>[])) then (aux stack ops ("</"::t)) else raise error_xml 
        |_-> raise error_xml
    in aux [] [] liste;;
- let exemple=  ["<";"contacts";">";"<";"contact";">";"eee";"<";"prenom";">";"Jimmy";"</";"prenom";">"
-;"<";"ville";">";"Olivet";"</";"ville";">";"</";"contact";">";"</";"contacts";">"];;
+ let exemple= getListXml "testXml.txt" ;;
 rules_xml exemple;;
- let rec nom_balises l=
-   match l with 
-       []->[]
-     |"<"::a -> (List.hd a)::(nom_balises (List.tl a))
-     |"</"::a -> (List.hd a)::(nom_balises (List.tl a))
-     |a::b -> (nom_balises b);;
+ let getFullEntry xml= let rec aux xml l m=
+match xml with
+[]->[]
+  |[hd] -> [DATA hd]
+  |"<"::hd::">"::tl -> if (l=[])&&(m=[]) then aux tl l (hd::m) else aux tl (l@["<";hd;">"]) m
+  |"</"::hd::">"::tl -> if (List.hd m)=hd then (ENTRY (hd, aux l [] []))::aux tl [] [] else aux tl (l@["</";hd;">"]) m
+  |hd::tl -> aux tl (l@[hd]) m 
+									   in aux xml [] [];;
+ let getFullXml xml= DOCUMENTXML [(getFullEntry xml)];;
+                                                    (* STRUCTURE DE LA  DTD *)
+type ide=string;;
+type elements= ELEMENTS of (occurence*atom) list
+	      |ALL of (occurence * atom) list
+	      |ONE_OF_ALL of (occurence * atom) list 
+and occurence= ATOM1 
+	       | ATOM_ADD 
+	       | ATOM_MULT 
+	       | ATOM_01
+and atom= IDENTIFIANT of ide 
+	  |ELEMENT of elements;;
 
-nom_balises exemple;;
-
-(* Methode permettant de retirer la 1ere occurence de s dans une liste l *)
-
- let rec remove s l=
-   match l with
-       []->[]
-     |a::b when a=s -> b
-     |a::b -> a::(remove s b);;
-
-(* Méthode permettant de retourner  la tete si celle-ci n'est pas identique à l'element suivant,  si la tete et le suivant sont 
-identiques on renvoie une liste contenant la tete et on continue avec le meme principe pour la suite
- - Exemple: si on a une liste l= ["m";"b";"v";"v";"r";"d"] la fonction renverra ["m"] et si on a une liste l2=["m";"m";"s";"s";"t";"p";"j";"t"] elle renverra
- ["m","s","t"] *)
-
- let rec sous_liste r =
-   match r  with
-     |[]-> []
-     |a::b -> begin 
-       match b with
-	   []->[]
-	 |c::d -> if (c=a) then (a::(sous_liste d)) else [a]
-     end;;
-(* l'argument m est le nom de la balise *)
- let sous_liste_final l m=
-   let rec aux liste  m=
-     match liste with 
-	 []->[]
-       |t::q -> if (t=m) then [] else t::(aux q m) in aux (sous_liste l) m;; 
-
-(* Méthode permettant de determiner le nombre d'apparition d'une balise dans un doccument xml *)
-
- let nb_apparition a l=
-   let rec aux a l res=
-     match l with 
-	 []-> (res/2)
-       |t::q -> if (t=a) then (aux a q (res+1)) else (aux a q res) in aux a l 0;;
-
-(* Méthode permettant de resumer un document xml à peu pres à l'image d'une DTD et donne le nombre d'apparition de chaque balise*)
-
- let resume_xml l=
-   let rec aux liste=
-   match liste with
-       []->[]
-     |a::b::[]->[(a,(["PCDATA"],(nb_apparition a l)))]
-     |a::b -> if (List.hd b)=a then (a,(["PCDATA"],(nb_apparition a l)))::(aux (List.tl b)) else (a,((sous_liste_final b a),(nb_apparition a l)))::(aux (remove a b)) in aux (nom_balises l);;
-
-(* Supprime les doublons c'est à dire chaque couple obtenu par par la fonction précedente qui se retrouve au minimum 2 est suprimé de telle sorte qu'il 
-reste qu'une seule occurence *)
-
- let resume_xml_final l=
-   let rec aux liste=
-   match liste with 
-       []->[]
-     |a::b -> a::(aux (remove a b)) in aux (resume_xml l);;
-
-(* Exemple de ce que fait la fonction *)
-(* L' argument de la fonction ci dessous (<<exemple>>) est une variable globale définit plus haut *)
-
-resume_xml_final ["<";"contacts";">";"<";"contact";">";"<";"prenom";">";"Jimmy";"</";"prenom";">";"<";"ville";">";"Olivet";"</";"ville";">";"</";"contact";">";"<";"contact";">";"<";"prenom";">";"Tennessy";"</";"prenom";">";"<";"ville";">";"Courtenay";"</";"ville";">";"</";"contact";">";"</";"contacts";">"] ;;
+type documentDTD = DOCUMENTDTD of (description list)
+and description= ide * model
+and model= EMPTY | PCDATA | MODEL of elements;;
+ 
+let dtd_expl = DOCUMENTDTD [
+("contacts", MODEL (ELEMENTS [(ATOM_MULT, IDENTIFIANT "contact")])); 
+("contact", MODEL (ALL [(ATOM1, IDENTIFIANT "prenom"); (ATOM1, IDENTIFIANT "ville")]));
+("prenom", PCDATA);
+("ville", PCDATA) ];;
 
 
 
-(*Creation de la DTD à partir d'un fichier *)
+ 
+                                         (*Creation de la DTD à partir d'un fichier *)
 
 let rec getLastElement l = match l with
   [] -> ""
@@ -195,16 +158,6 @@ let  id =  (List.hd (List.tl base)) in
 let d1 = Str.split(Str.regexp "[()]") (getLastElement base) in 
 let d2 = ( (Str.full_split(Str.regexp "[,|]") (List.hd  d1))) in (getListComplete d2 (id));; 
 
-let read_file filename = 
-  let lines = ref [] in
-    let chan = open_in filename in
-    try
-      while true; do
-        lines := input_line chan :: !lines
-      done; []
-    with End_of_file ->
-      close_in chan;
-      List.rev !lines ;;
 
 
 
@@ -220,56 +173,4 @@ let rec generateDtd l = match l with
 
 let getFullDtd f = DOCUMENTDTD (generateDtd (read_file f));;
 
-let rec getXmlString l = match l with
-  [] -> ""
-  | hd::tl -> (hd^(getXmlString tl));;
-(* String privé de son 1er caractère *)
-let without_the_first s=(String.sub s 1 ((String.length s)-1));;
-
-(* Rassemble les chevrons et le slash *)
-let rec rassembleSlash l = match l with
-  [] -> []
-  | hd::tl when (hd = "<") -> 
-    begin
-      match tl with 
-	  [] -> [hd]
-	|t::q when (String.sub t 0 1)="/" -> "</"::(rassembleSlash ((without_the_first t)::q))
-	|t::q -> hd::(rassembleSlash (t::q))
-    end 
-  | hd::tl -> if ((String.sub hd 0 1)="/") then "/"::(without_the_first hd)::(rassembleSlash tl) else hd::(rassembleSlash (tl));;
-
-let getListXml xml =rassembleSlash ( string_of_result(Str.full_split(Str.regexp "[<>]") (getXmlString(read_file xml))));;
-let rec remove_word liste=
-match liste with
-[]-> []
-  |"<"::b -> "<"::(remove_word b)
-  |">"::b -> ">"::(remove_word b)
-  |a::b when (String.sub a 0 9)="!ELEMENT " ->  (String.sub a 9 ((String.length a)-9))::(remove_word b)
-  |a::b -> a::(remove_word b);;
-let separe_parentheses dtd  =( string_of_result(Str.full_split(Str.regexp "[(<>)]") (getXmlString(dtd))));;
-let rec remove_virgule liste  = match liste with
-[]->[]
-  |","::tl -> separe_remove_virgule tl 
-  |hd::tl -> hd::(separe_remove_virgule tl);;
-let separe_virgule l= ( string_of_result(Str.full_split(Str.regexp ",") (getXmlString([l]))));;
-let getSepare_element d= List.map (fun (x,y)-> (x, remove_virgule(separe_virgule y))) d;;
-let rec apparition_dtd
-let rec couplage liste= 
-match liste with
-[]->[]
-  |"<"::b -> begin 
-    match b with
-	[]->[]
-      |">"::q -> couplage q
-      |hd::tl -> begin 
-	match tl with
-	    []->[]
-	  |"("::e::")"::f ->(hd,e)::(couplage f) 
-	  |e::f -> failwith "erreur"
-      end 
-  end
-  |">"::b ->couplage b;;
-
-let getListDTD dtd =getSepare_element (couplage (separe_parentheses (remove_word ( string_of_result(Str.full_split(Str.regexp "[<>]") (getXmlString(read_file dtd)))))));;
-
-getListDTD "dtdTest.txt";;
+getListXml "testXml.txt";;
