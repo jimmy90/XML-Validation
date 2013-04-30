@@ -4,6 +4,7 @@
 
  exception Fail of string;;
  let error_xml= Fail "Not a XML file";;
+ let error_dtd = Fail "Error DTD";;
 
 type split_result= Delim of string | Text of string;;
 let rec string_of_result l=
@@ -167,10 +168,6 @@ let rec generateDtd l = match l with
 
 let getFullDtd f = DOCUMENTDTD (generateDtd (read_file f));;
 
-let rec generateDtd l = match l with 
-      [] ->  []
-      | hd::tl -> (getLineDtd hd)::(generateDtd tl);;
 
-let getFullDtd f = DOCUMENTDTD (generateDtd (read_file f));;
 
 getListXml "testXml.txt";;
