@@ -2,3 +2,4 @@
 <!ELEMENT contact (nom,prenom,ville)>
 <!ELEMENT nom (#PCDATA)>
 <!ELEMENT prenom (#PCDATA)>
+<!ELEMENT ville (#PCDATA)>
