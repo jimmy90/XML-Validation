@@ -252,7 +252,7 @@ if((Array.length Sys.argv) = 3) then
       print_string "Echec de la validation"
     end
   else
-    print_string "Fichiers non present"
+    print_string "Fichier inexistant"
   end
 else
   print_string "Syntaxe : ocaml Projet.ml XML DTD";;
