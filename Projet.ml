@@ -86,9 +86,6 @@ let getListXml xml =rassembleSlash ( string_of_result(Str.full_split(Str.regexp 
        |n::"</"::t ->  if ((ops=[])&&(stack<>[])) then (aux stack ops ("</"::t)) else false 
        |_-> false
    in aux [] [] liste;;
- let exemple= getListXml "testXml.txt" ;;
-rules_xml exemple;;
-
                                           (* CONSTRUCTION DE L'ARBRE XML *)
  let getFullEntry xml= let rec aux xml l m=
 match xml with
@@ -145,7 +142,6 @@ let rec generateDtd l = match l with
       | hd::tl -> (getLineDtd hd)::(generateDtd tl);;
 
 let getFullDtd f =((generateDtd (read_file f)):documentDTD);;
-getFullDtd "dtdTest.txt";;
                                        (*  VERIFICATION STRUCTURELLE XML-DTD *)
                  (* Fonctions intermediaires *)
 (* Methodes retirant des doublons ou une seule occurence*)
@@ -174,7 +170,7 @@ let rec aux liste res=
       |DATA(x)::q -> aux q (res) 
       |ENTRY(x,y)::q -> aux q (x::(aux y (res)))
            in aux xml [] ;;
-let x= retrouver_toutXml ((getFullEntry "testXml.txt"));;
+
 (* Retourne les balises contenue dans s sans les doublons *)
 let rec contenu_balise (xml:documentXML) s=
 remove_doublons(match xml with
@@ -182,7 +178,6 @@ remove_doublons(match xml with
   |[DATA a] -> []
   |(ENTRY (a,b))::t-> if (a=s) then retrouver b else (contenu_balise b s)@(contenu_balise t s)
   |_-> []);;
-contenu_balise ((getFullXml "testXml.txt"))  "contact";;
 
 (* Nombre de balises dans une balise *)
 let nb_atome (xml:documentXML) s= let aux l = (List.length l) in aux (contenu_balise xml s);;
@@ -193,7 +188,6 @@ match xml with
 []->res 
   |a::b -> if a=s then aux b s (res+1) else aux b s res  
 			in aux (retrouver_toutXml_doublons xml) s 0;;
-nb_occurence (getFullXml "testXml.txt") "telephone"
 let rec in_the s l=match l with []->false | a::b -> if a=s then true else in_the s b;;
 
 (* Retrouve tous les id dans un document DTD *)
@@ -201,7 +195,6 @@ let rec retrouver_toutDtd (dtd:documentDTD) =
 remove_doublons( match dtd with 
   |[] -> [] 
   |(x,_)::q-> x::(retrouver_toutDtd q));;
-retrouver_toutDtd (getFullDtd "dtdTest.txt");;
 
 (* Test pour savoir si 2 listes comptent les memes elements *)
 let equal_list (xml:documentXML) (dtd:documentDTD)=
@@ -230,7 +223,7 @@ match d with
 
                       (*Validation complete*)
 let validation xml dtd= let rec aux xml dtd =
-(equal_list (getFullXml "testXml.txt") (getFullDtd "dtdTest.txt"))&&(match dtd with 
+(*(equal_list (getFullXml "testXml.txt") (getFullDtd "dtdTest.txt"))&&*)(match dtd with 
 []-> true
     |(x, PCDATA)::q -> if (contenu_balise xml x)=[] then aux xml q else false
     |(x, (MODEL (ALL y)))::q -> if (traite_all y xml x)&&((List.length y)<=(nb_atome xml x)) then aux xml q else false
@@ -245,15 +238,22 @@ let validation xml dtd= let rec aux xml dtd =
       end
     |_ -> false)
 in aux (getFullXml xml) (getFullDtd dtd);;
-validation "testXml.txt" "dtdTest.txt";;
-(equal_list (getFullXml "testXml.txt") (getFullDtd "dtdTest.txt"))&&(validation "testXml.txt" "dtdTest.txt");;
  
-(* IL manque que la main *)
-(* Au debut il y'a une methode exist_file qui teste l' existence des fichiers et la methode rules_xml n'a plus d'xception elle renvoie faux si c'est pas bon *)
-(* Je sais pas comment tu vas operer avec le main 
-j'ai pensé à un truc du genre :
--test du nbre d'args
--test existence des fichiers
--test syntaxe xml 
-- test validation xml dtd 
- DANS LE DERNIER POINT DANS DESCRIPTION DU TRAVAIL DU SUJET IL DIT CE QUI DOIT ETRE AFFICHER *)
+
+if((Array.length Sys.argv) = 3) then 
+  begin if(exist_file (Sys.argv.(1)) && exist_file(Sys.argv.(2))) then
+    begin if(rules_xml (getListXml Sys.argv.(1))) then
+      begin if(validation Sys.argv.(1) Sys.argv.(2)) then
+        print_string "Validation reussie"
+      else
+        print_string "Echec de la validation"
+      end
+    else
+      print_string "Echec de la validation"
+    end
+  else
+    print_string "Fichiers non present"
+  end
+else
+  print_string "Syntaxe : ocaml Projet.ml XML DTD";;
+
