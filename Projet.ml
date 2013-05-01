@@ -1,11 +1,8 @@
-
 #load "str.cma";;
-                (*  LECTURE FICHIER & EXCEPTION  *)
-
+                                         (* LECTURE DE FICHIER, EXISTENCE *)
  exception Fail of string;;
- let error_xml= Fail "Not a XML file";;
- let error_dtd = Fail "Error DTD";;
-
+ let error_dtd= Fail "Not a DTD file";;
+ let exist_file s= Sys.file_exists s;;
 type split_result= Delim of string | Text of string;;
 let rec string_of_result l=
 match l with 
@@ -24,27 +21,30 @@ let read_file filename =
       List.rev !lines ;;
 
 
-(* Structure document XML *)
-
-type documentXML= DOCUMENTXML of (entry list)
-and entry=Vide  |DATA of string
+                                    (* TYPAGE DES DIFFERENTS DOCUMENTS (XML & DTD)  *)
+(* XML *)
+type documentXML= entry list
+and entry=DATA of string
 	   |ENTRY of string*(entry list);;
-(*
-<contacts>
-	<contact>
- 		<prenom> Jimmy </prenom>
-		<ville> olivet </ville>
-                 <tel> 0600000 </tel>
-	<contact>
-        <contact>
-                <prenom> Ten </prenom>
-		<ville> Courtenay </ville>
-        </contact>
- </contacts>
-*)
-let essai= DOCUMENTXML[ENTRY ( "contacts",[ENTRY ("contact",[ENTRY ("prenom",[DATA "Jimmy"]);ENTRY ("ville",[DATA "Olivet"]);ENTRY ("tel",[DATA "06000000"])]);
-ENTRY ("contact",[ENTRY ("prenom",[DATA "Ten"]);ENTRY ("ville",[DATA "Courtenay"])])])];;
-                                     (* VERIFICATION DE LA SYNTAXE *) 
+
+(* DTD *)
+type ide=string;;
+type elements= ELEMENTS of (occurrence*atom)list
+	      |ALL of (occurrence * atom) list
+	      |ONE_OF_ALL of (occurrence * atom) list 
+and occurrence= ATOM1 
+	       | ATOM_ADD 
+	       | ATOM_MULT 
+	       | ATOM_01
+and atom= IDENTIFIANT of ide 
+	  |ELEMENT of elements;;
+
+type documentDTD = (description list)
+and description= string * model
+and model= EMPTY | PCDATA | MODEL of elements;;
+
+                                          (* VERIFICATION SYNTAXIQUE XML *)
+(* Concatenation des elements de la liste en une chaine *)
 let rec getXmlString l = match l with
   [] -> ""
   | hd::tl -> (hd^(getXmlString tl));;
@@ -66,29 +66,30 @@ let rec rassembleSlash l = match l with
 let getListXml xml =rassembleSlash ( string_of_result(Str.full_split(Str.regexp "[<>]") (getXmlString(read_file xml))));;
 
 (* Verification de la structure du fichier xml  *)
-(* Explications plus détaillé de la méthode à venir  *)
+
  let depiler l= (List.tl l);; (* Depiler une pile en retirant la tete *)
  let rules_xml liste=
    let rec aux stack ops l= (* l est la liste à evaluer; stack est la pile d'expression contenant le nom des balises; ops est la pile contenant les symboles du genre "<" "</" *)
      match l with
-	 []-> if ((stack=[])&&(ops=[])) then true else raise error_xml
-       |"<"::t-> if (ops=[]) then (aux stack ("<"::ops) t) else raise error_xml
-       |">"::t-> if ((stack=[])&&(ops=[])) then raise error_xml else  if ((List.hd ops)="<") then (aux stack (depiler ops) t) else raise error_xml
-       |"</"::t-> if ((ops<>[])&&(stack=[])) then raise error_xml else 
+	 []-> if ((stack=[])&&(ops=[])) then true else false
+       |"<"::t-> if (ops=[]) then (aux stack ("<"::ops) t) else false
+       |">"::t-> if ((stack=[])&&(ops=[])) then false else  if ((List.hd ops)="<") then (aux stack (depiler ops) t) else false
+       |"</"::t-> if ((ops<>[])&&(stack=[])) then false else 
 	   begin  match t with
-	       []->raise error_xml
-	     |a::[]->raise error_xml
-	     |a::">"::c -> if (a=(List.hd stack)) then (aux (depiler stack) ops c) else raise error_xml
-	     |_-> raise error_xml
+	       []-> false
+	     |a::[]-> false
+	     |a::">"::c -> if (a=(List.hd stack)) then (aux (depiler stack) ops c) else false
+	     |_-> false
 	   end 
-       |n::">"::t -> if (ops=[]) then raise error_xml else (aux (n::stack) ops (">"::t))
-       |n::"<"::t -> if ((ops=[])&&(stack<>[])) then (aux stack ops ("<"::t)) else raise error_xml  (*Si dans la liste donné en exemple la place de "eee" rend 
-le fichier xml faux alors supprimer cette ligne svp dans le cas contraire laisser la ligne  *)
-       |n::"</"::t ->  if ((ops=[])&&(stack<>[])) then (aux stack ops ("</"::t)) else raise error_xml 
-       |_-> raise error_xml
+       |n::">"::t -> if (ops=[]) then false else (aux (n::stack) ops (">"::t))
+       |n::"<"::t -> if ((ops=[])&&(stack<>[])) then (aux stack ops ("<"::t)) else false
+       |n::"</"::t ->  if ((ops=[])&&(stack<>[])) then (aux stack ops ("</"::t)) else false 
+       |_-> false
    in aux [] [] liste;;
  let exemple= getListXml "testXml.txt" ;;
 rules_xml exemple;;
+
+                                          (* CONSTRUCTION DE L'ARBRE XML *)
  let getFullEntry xml= let rec aux xml l m=
 match xml with
 []->[]
@@ -96,34 +97,10 @@ match xml with
   |"<"::hd::">"::tl -> if (l=[])&&(m=[]) then aux tl l (hd::m) else aux tl (l@["<";hd;">"]) m
   |"</"::hd::">"::tl -> if (List.hd m)=hd then (ENTRY (hd, aux l [] []))::aux tl [] [] else aux tl (l@["</";hd;">"]) m
   |hd::tl -> aux tl (l@[hd]) m 
-									   in aux xml [] [];;
- let getFullXml xml= DOCUMENTXML [(getFullEntry xml)];;
-                                                    (* STRUCTURE DE LA  DTD *)
-type ide=string;;
-type elements= ELEMENTS of (occurence*atom) list
-	      |ALL of (occurence * atom) list
-	      |ONE_OF_ALL of (occurence * atom) list 
-and occurence= ATOM1 
-	       | ATOM_ADD 
-	       | ATOM_MULT 
-	       | ATOM_01
-and atom= IDENTIFIANT of ide 
-	  |ELEMENT of elements;;
+									   in aux (getListXml xml) [] [];;
+ let getFullXml xml= ((getFullEntry xml):documentXML);;
 
-type documentDTD = DOCUMENTDTD of (description list)
-and description= ide * model
-and model= EMPTY | PCDATA | MODEL of elements;;
- 
-let dtd_expl = DOCUMENTDTD [
-("contacts", MODEL (ELEMENTS [(ATOM_MULT, IDENTIFIANT "contact")])); 
-("contact", MODEL (ALL [(ATOM1, IDENTIFIANT "prenom"); (ATOM1, IDENTIFIANT "ville")]));
-("prenom", PCDATA);
-("ville", PCDATA) ];;
-
-
-
- 
-                                         (*Creation de la DTD à partir d'un fichier *)
+                                          (* CONSTRUCTION DE L'ARBRE DTD *)
 
 let rec getLastElement l = match l with
   [] -> ""
@@ -137,6 +114,7 @@ let getCoupleDtd s = match (Str.last_chars s 1) with
   | "+" -> (ATOM_ADD, IDENTIFIANT(  (Str.string_before s ((String.length s)-1))))
   | _ -> (ATOM1, IDENTIFIANT( (Str.string_before s ((String.length s)))));;
 
+
 (*Renvois une liste des couples ( par exemple, à partir de (prenom,nom,telephone?)) *)
 let rec getListElement l = match l with
   [] -> []
@@ -146,12 +124,12 @@ let rec getListElement l = match l with
 let getListComplete l ( id)= 
   match l with 
     [] -> raise error_dtd
-    | (Str.Text hd)::tl when hd="#PCDATA" -> (id, PCDATA)
-    |hd::[] -> ( id, MODEL (ELEMENTS (getListElement l))) 
+    | (Str.Text hd)::tl when hd="#PCDATA" -> ((id, PCDATA):description)
+    |hd::[] -> (( id, MODEL (ELEMENTS (getListElement l))):description)
     |hd::tl -> let lDelim = (List.hd (List.tl l)) in match l with
-        (Str.Text hd)::tl when lDelim=(Str.Delim ",") -> ( id, MODEL (ALL (getListElement l)))
-        | (Str.Text hd)::tl when lDelim=(Str.Delim "|") -> (id, MODEL (ONE_OF_ALL (getListElement l)))
-        |  _ -> (id, MODEL (ELEMENTS (getListElement l))) ;;
+        (Str.Text hd)::tl when lDelim=(Str.Delim ",") -> (( id, MODEL (ALL (getListElement l))):description)
+        | (Str.Text hd)::tl when lDelim=(Str.Delim "|") -> ((id, MODEL (ONE_OF_ALL (getListElement l))):description)
+        |  _ -> ((id, MODEL (ELEMENTS (getListElement l))):description) ;;
 
 let getLineDtd s = 
 let base = Str.split(Str.regexp "[< >]") s in 
@@ -166,8 +144,116 @@ let rec generateDtd l = match l with
       [] ->  []
       | hd::tl -> (getLineDtd hd)::(generateDtd tl);;
 
-let getFullDtd f = DOCUMENTDTD (generateDtd (read_file f));;
+let getFullDtd f =((generateDtd (read_file f)):documentDTD);;
+getFullDtd "dtdTest.txt";;
+                                       (*  VERIFICATION STRUCTURELLE XML-DTD *)
+                 (* Fonctions intermediaires *)
+(* Methodes retirant des doublons ou une seule occurence*)
+let rec remove_one_occur s l = match l with []->[] | a::b -> if a=s then remove_one_occur s b else a::(remove_one_occur s b);;
+let rec remove_doublons s =match s with []-> [] | a::b -> a::(remove_doublons (remove_one_occur a b));;
 
+(* Retourne le nom des balises contenues dans une entry list *)
+let rec retrouver xml=
+match xml with
+  |[]->[]
+  |[DATA a] -> []
+  |(ENTRY (a,b))::t-> [a]@(retrouver t)
+  |_ -> failwith "00";;
+(* Retrouve toutes les balises dans le document XML *)
+let retrouver_toutXml (xml:documentXML)=
+remove_doublons(let rec aux liste res= 
+  match liste with   
+      [] -> res 
+      |DATA(x)::q -> aux q (res) 
+      |ENTRY(x,y)::q -> aux q (x::(aux y (res)))
+           in aux xml []) ;;
+let retrouver_toutXml_doublons (xml:documentXML)=
+let rec aux liste res= 
+  match liste with   
+      [] -> res 
+      |DATA(x)::q -> aux q (res) 
+      |ENTRY(x,y)::q -> aux q (x::(aux y (res)))
+           in aux xml [] ;;
+let x= retrouver_toutXml ((getFullEntry "testXml.txt"));;
+(* Retourne les balises contenue dans s sans les doublons *)
+let rec contenu_balise (xml:documentXML) s=
+remove_doublons(match xml with
+[]->[]
+  |[DATA a] -> []
+  |(ENTRY (a,b))::t-> if (a=s) then retrouver b else (contenu_balise b s)@(contenu_balise t s)
+  |_-> []);;
+contenu_balise ((getFullXml "testXml.txt"))  "contact";;
 
+(* Nombre de balises dans une balise *)
+let nb_atome (xml:documentXML) s= let aux l = (List.length l) in aux (contenu_balise xml s);;
 
-getListXml "testXml.txt";;
+(* Nombre d'apparition d'une balise dans un document xml *)
+let nb_occurence (xml:documentXML) s= let rec aux xml s res=
+match xml with
+[]->res 
+  |a::b -> if a=s then aux b s (res+1) else aux b s res  
+			in aux (retrouver_toutXml_doublons xml) s 0;;
+nb_occurence (getFullXml "testXml.txt") "telephone"
+let rec in_the s l=match l with []->false | a::b -> if a=s then true else in_the s b;;
+
+(* Retrouve tous les id dans un document DTD *)
+let rec retrouver_toutDtd (dtd:documentDTD) = 
+remove_doublons( match dtd with 
+  |[] -> [] 
+  |(x,_)::q-> x::(retrouver_toutDtd q));;
+retrouver_toutDtd (getFullDtd "dtdTest.txt");;
+
+(* Test pour savoir si 2 listes comptent les memes elements *)
+let equal_list (xml:documentXML) (dtd:documentDTD)=
+if (List.length (retrouver_toutXml xml))<>(List.length (retrouver_toutDtd dtd)) then false else
+    let rec aux x d= match x with
+	[]->true
+      |a::b -> if (in_the a d) then aux b d else false in aux (retrouver_toutXml xml) (retrouver_toutDtd dtd)  ;;
+
+(* Validation des elements de type ALL & ONE_OF_ALL *)
+let rec traite_all d xml x=
+match d with
+[]->true
+  |(ATOM1, IDENTIFIANT i)::q->if (in_the i (contenu_balise xml x)) then (traite_all q xml x) else false
+  |(ATOM_ADD,IDENTIFIANT i)::q->if (in_the i (contenu_balise xml x))&&((nb_atome xml i)>0) then (traite_all q xml x) else false
+  |(ATOM_01,IDENTIFIANT i)::q-> if (in_the i (contenu_balise xml x))&&((nb_occurence xml i)<=1) then(traite_all q xml x) else false
+  |(ATOM_MULT,IDENTIFIANT i)::q->if in_the i (contenu_balise xml x) then (traite_all q xml x) else false
+  |_ -> false ;;
+let rec traite_or d xml x=
+match d with
+[]->false
+|(ATOM1, IDENTIFIANT i)::q->if (in_the i (contenu_balise xml x)) then true else false||(traite_or q xml x)
+  |(ATOM_ADD,IDENTIFIANT i)::q->if (in_the i (contenu_balise xml x))&&((nb_atome xml i)>0) then true else false||(traite_or q xml x)
+  |(ATOM_01,IDENTIFIANT i)::q-> if (in_the i (contenu_balise xml x))&&((nb_occurence xml i)<=1) then true else false||(traite_or q xml x)
+  |(ATOM_MULT,IDENTIFIANT i)::q->if in_the i (contenu_balise xml x) then true else false||(traite_or q xml x)
+  |_ -> false ;;
+
+                      (*Validation complete*)
+let validation xml dtd= let rec aux xml dtd =
+(equal_list (getFullXml "testXml.txt") (getFullDtd "dtdTest.txt"))&&(match dtd with 
+[]-> true
+    |(x, PCDATA)::q -> if (contenu_balise xml x)=[] then aux xml q else false
+    |(x, (MODEL (ALL y)))::q -> if (traite_all y xml x)&&((List.length y)<=(nb_atome xml x)) then aux xml q else false
+   |(x, (MODEL (ONE_OF_ALL y))):: q-> if (traite_or y xml x) then aux xml q else false
+    |(x, (MODEL (ELEMENTS y)))::q ->
+      begin match y with 
+	[]-> aux xml q
+	    |[(ATOM_MULT,IDENTIFIANT i)]->if (contenu_balise xml x)=[i] then aux xml q else false
+	    |[(ATOM_ADD,IDENTIFIANT i)]->if ((contenu_balise xml x)=[i])&&((nb_atome xml i)>0) then aux xml q else false
+	    |[(ATOM_01,IDENTIFIANT i)]-> if ((contenu_balise xml x)=[i])&&((nb_occurence xml i)<=1) then aux xml q else false
+	    |_ -> false
+      end
+    |_ -> false)
+in aux (getFullXml xml) (getFullDtd dtd);;
+validation "testXml.txt" "dtdTest.txt";;
+(equal_list (getFullXml "testXml.txt") (getFullDtd "dtdTest.txt"))&&(validation "testXml.txt" "dtdTest.txt");;
+ 
+(* IL manque que la main *)
+(* Au debut il y'a une methode exist_file qui teste l' existence des fichiers et la methode rules_xml n'a plus d'xception elle renvoie faux si c'est pas bon *)
+(* Je sais pas comment tu vas operer avec le main 
+j'ai pensé à un truc du genre :
+-test du nbre d'args
+-test existence des fichiers
+-test syntaxe xml 
+- test validation xml dtd 
+ DANS LE DERNIER POINT DANS DESCRIPTION DU TRAVAIL DU SUJET IL DIT CE QUI DOIT ETRE AFFICHER *)
