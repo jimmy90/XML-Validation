@@ -249,7 +249,7 @@ if((Array.length Sys.argv) = 3) then
         print_string "Echec de la validation"
       end
     else
-      print_string "Echec de la validation"
+      print_string "Echec de la validation: Mauvaise syntaxe du fichier XML"
     end
   else
     print_string "Fichier inexistant"
