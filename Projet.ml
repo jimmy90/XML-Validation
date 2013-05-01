@@ -63,7 +63,7 @@ let rec rassembleSlash l = match l with
     end 
   | hd::tl -> if ((String.sub hd 0 1)="/") then "/"::(without_the_first hd)::(rassembleSlash tl) else hd::(rassembleSlash (tl));;
 
-let getListXml xml =rassembleSlash ( string_of_result(Str.full_split(Str.regexp "[<>]") (getXmlString(read_file xml))));;
+let getListXml xml =rassembleSlash ( string_of_result(Str.full_split(Str.regexp "[<>]") (Str.global_replace (Str.regexp "\t") "" (getXmlString(read_file xml)))));;
 
 (* Verification de la structure du fichier xml  *)
 
