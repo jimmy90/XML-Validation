@@ -1,6 +1,5 @@
 <contacts>
 	<contact>	
 		<nom>Test2</nom>
-		</contact>
-	
+	</contact>	
 </contacts>

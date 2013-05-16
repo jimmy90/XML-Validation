@@ -322,10 +322,10 @@ match d with
   |(ATOM_01,IDENTIFIANT i)::q-> if (in_the i (contenu_balise xml x))&&((nb_occurence xml i)<=1) then (true)::(traite_or_aux q xml x) else false::(traite_or_aux q xml x)
   |(ATOM_MULT,IDENTIFIANT i)::q->if in_the i (contenu_balise xml x) then (true)::(traite_or_aux q xml x) else false::(traite_or_aux q xml x)
   |_ -> [false] ;;
-
+contenu_balise (getFullXml "Files/XML1.txt") "contact";;
 let traite_or d xml x= let rec aux l = (combien l true)=1 in aux (traite_or_aux d xml x);;
 
-                      (*Validation complete*)
+                      (* Validation complete *)
 
 let validation xml1 dtd1= if  (inclusion_xml_dtd (getFullXml xml1) (getFullDtd dtd1))=false then false else let rec aux xml dtd =
 match dtd with 
@@ -360,3 +360,4 @@ if((Array.length Sys.argv) = 3) then
   end
 else
   print_string "Syntaxe : ocaml Projet.ml XML DTD";;
+validation "Files/XML2.txt" "Files/DTD2.txt";;

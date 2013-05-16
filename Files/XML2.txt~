@@ -1,0 +1,12 @@
+<contacts>
+	<contact>	
+		<nom>Test2</nom>
+		<prenom>Test</prenom>
+		<telephone>iii</telephone>
+	</contact>
+	<contact>
+		<nom>Test2</nom>
+		<prenom>Test</prenom>
+	</contact>
+	
+</contacts>
