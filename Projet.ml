@@ -208,9 +208,9 @@ let rec traite_all d xml x=
 match d with
 []->true
   |(ATOM1, IDENTIFIANT i)::q->if (in_the i (contenu_balise xml x)) then (traite_all q xml x) else false
-  |(ATOM_ADD,IDENTIFIANT i)::q->if (in_the i (contenu_balise xml x))&&((nb_atome xml i)>0) then (traite_all q xml x) else false
+  |(ATOM_ADD,IDENTIFIANT i)::q->if (in_the i (contenu_balise xml x))&&((nb_atome xml i)>=0) then (traite_all q xml x) else false
   |(ATOM_01,IDENTIFIANT i)::q-> if (in_the i (contenu_balise xml x))&&((nb_occurence xml i)<=1) then(traite_all q xml x) else false
-  |(ATOM_MULT,IDENTIFIANT i)::q->if in_the i (contenu_balise xml x) then (traite_all q xml x) else false
+  |(ATOM_MULT,IDENTIFIANT i)::q->if in_the i (contenu_balise xml x)&&((nb_occurence xml i)=1) then (traite_all q xml x) else false
   |_ -> false ;;
 let rec traite_or d xml x=
 match d with
@@ -218,7 +218,7 @@ match d with
 |(ATOM1, IDENTIFIANT i)::q->if (in_the i (contenu_balise xml x)) then true else false||(traite_or q xml x)
   |(ATOM_ADD,IDENTIFIANT i)::q->if (in_the i (contenu_balise xml x))&&((nb_atome xml i)>0) then true else false||(traite_or q xml x)
   |(ATOM_01,IDENTIFIANT i)::q-> if (in_the i (contenu_balise xml x))&&((nb_occurence xml i)<=1) then true else false||(traite_or q xml x)
-  |(ATOM_MULT,IDENTIFIANT i)::q->if in_the i (contenu_balise xml x) then true else false||(traite_or q xml x)
+  |(ATOM_MULT,IDENTIFIANT i)::q->if in_the i (contenu_balise xml x)&&((nb_occurence xml i)=1)  then true else false||(traite_or q xml x)
   |_ -> false ;;
 
                       (*Validation complete*)
@@ -238,7 +238,7 @@ match dtd with
       end
     |_ -> false
 in aux (getFullXml xml) (getFullDtd dtd));;
-;;
+
 if((Array.length Sys.argv) = 3) then 
   begin if(exist_file (Sys.argv.(1)) && exist_file(Sys.argv.(2))) then
     begin if(rules_xml (getListXml Sys.argv.(1))) then
