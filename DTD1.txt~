@@ -1,0 +1,5 @@
+<!ELEMENT contacts (contact*)>
+<!ELEMENT contact (prenom,nom,telephone?)>
+<!ELEMENT nom (#PCDATA)>
+<!ELEMENT prenom (#PCDATA)>
+<!ELEMENT telephone (#PCDATA)>
