@@ -1,12 +1,13 @@
 <contacts>
 
 	<contact>
-
+		<telephone>Test3</telephone>
 		<nom>Test2</nom>
 
 		<prenom>Test</prenom>
 
-		<telephone>Test3</telephone>
+		
+
 
 	</contact>
 
