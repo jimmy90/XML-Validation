@@ -1,5 +1,5 @@
 #load "str.cma";;
-                                         (* LECTURE DE FICHIER, EXISTENCE *)
+                                         (* LECTURE DE FICHIER,EXISTENCE *)
 
  exception Fail of string;;
 
