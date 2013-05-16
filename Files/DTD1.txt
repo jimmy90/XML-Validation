@@ -2,4 +2,3 @@
 <!ELEMENT contact (nom|prenom)>
 <!ELEMENT nom (#PCDATA)>
 <!ELEMENT prenom (#PCDATA)>
-<!ELEMENT telephone (#PCDATA)>

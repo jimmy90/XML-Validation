@@ -1,22 +1,11 @@
 <contacts>
-
-	<contact>
-		<telephone>Test3</telephone>
+	<contact>	
 		<nom>Test2</nom>
-
 		<prenom>Test</prenom>
-
-		
-
-
 	</contact>
-
 	<contact>
-
 		<nom>Test2</nom>
-
 		<prenom>Test</prenom>
-
 	</contact>
-
+	
 </contacts>

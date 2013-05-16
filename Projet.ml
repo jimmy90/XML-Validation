@@ -249,7 +249,7 @@ let rec getParentDtd balise (dtd:documentDTD) =
     | _ -> ""
   end
   | _::tl -> getParentDtd balise tl;;
-getParentDtd "telephone" (getFullDtd "DTD1.txt");;
+
 (* Nombre de balises dans une balise *)
 
 let nb_atome (xml:documentXML) s= let aux l = (List.length l) in aux (contenu_balise xml s);;
