@@ -317,10 +317,10 @@ match d with
 let rec traite_or_aux d xml x=
 match d with
 []->[false]
-|(ATOM1, IDENTIFIANT i)::q->if (in_the i (contenu_balise xml x))&&((occur_in_balise xml x i)=1) then (true)::(traite_or_aux q xml x) else false::(traite_or_aux q xml x)
-  |(ATOM_ADD,IDENTIFIANT i)::q->if (in_the i (contenu_balise xml x))&&((nb_atome xml i)>0) then (true)::(traite_or_aux q xml x)  else false::(traite_or_aux q xml x)
-  |(ATOM_01,IDENTIFIANT i)::q-> if (in_the i (contenu_balise xml x))&&((nb_occurence xml i)<=1) then (true)::(traite_or_aux q xml x) else false::(traite_or_aux q xml x)
-  |(ATOM_MULT,IDENTIFIANT i)::q->if in_the i (contenu_balise xml x) then (true)::(traite_or_aux q xml x) else false::(traite_or_aux q xml x)
+|(ATOM1, IDENTIFIANT i)::q->if (in_the i (contenu_balise xml x))&&((occur_in_balise xml x i)=1) then (true)::(traite_or q xml x) else false::(traite_or q xml x)
+  |(ATOM_ADD,IDENTIFIANT i)::q->if (in_the i (contenu_balise xml x))&&((nb_atome xml i)>0) then (true)::(traite_or q xml x)  else false::(traite_or q xml x)
+  |(ATOM_01,IDENTIFIANT i)::q-> if (in_the i (contenu_balise xml x))&&((nb_occurence xml i)<=1) then (true)::(traite_or q xml x) else false::(traite_or q xml x)
+  |(ATOM_MULT,IDENTIFIANT i)::q->if in_the i (contenu_balise xml x) then (true)::(traite_or q xml x) else false::(traite_or q xml x)
   |_ -> [false] ;;
 
 let traite_or d xml x= let rec aux l = (combien l true)=1 in aux (traite_or_aux d xml x);;
