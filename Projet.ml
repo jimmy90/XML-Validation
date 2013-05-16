@@ -360,4 +360,3 @@ if((Array.length Sys.argv) = 3) then
   end
 else
   print_string "Syntaxe : ocaml Projet.ml XML DTD";;
-validation "Files/XML2.txt" "Files/DTD2.txt";;
